@@ -32,6 +32,9 @@
         }
 
 
+        #preview-area {
+            display: none;
+        }
 
     </style>
 
@@ -82,12 +85,14 @@ Outro
     <br>
     
     <br>
-    <div id="viewer"></div>
 
-    
-    <br>
-    <button id="save-button">Save and Edit Song</button>
-    
+    <div id="preview-area">
+        <div id="viewer"></div>
+
+        
+        <br>
+        <button id="save-button">Save and Edit Song</button>
+    </div>
     </div>
 
     <script src="/js/omgservice.js"></script>
@@ -121,6 +126,9 @@ Outro
 
 
         document.getElementById("preview-button").onclick = e => {
+            document.getElementById("preview-area").style.display = "block"
+            document.body.parentElement.scrollTop = document.body.parentElement.scrollHeight
+
             if (viewer && viewer.embedViewer && 
                     viewer.embedViewer.player && viewer.embedViewer.player.playing) {
                 viewer.embedViewer.player.stop()
