@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+    <style>
+        body {
+            background-color: #282828;
+            padding: 25px;
+        }
+
+        #sp-page-background {
+            width:600px;
+            margin: auto;
+        
+        }        
+        #sp-page {
+            background-color: white;
+            padding: 45px;
+        }
+
+        input {
+            border: 1px solid transparent;
+            font-size: 1.2em;            
+        }
+
+        #song-name {
+            font-size: 1.4em;
+        }
+
+        #preview {
+            margin: auto;
+        }
+
+
+
+    </style>
+
+    <link rel="stylesheet" type="text/css" href="/css/viewer.css"/>
+    
+</head>
+
+
+<body>
+
+    <div id="sp-page-background">
+
+
+        
+        <pre id="sp-page" contenteditable="true">
+Untitled song
+by Mike
+
+114 bpm
+Key of G
+4/4
+
+(trumpet,drums,bass,xylophone)
+
+Intro
+---
+|D C G G
+
+
+Verse
+---
+
+|V
+Here are some lyrics
+
+|IV
+They are for my song
+
+|I                    I
+Yeah yeah yeah
+
+Outro
+---
+|V IV I I
+</pre>
+
+    <button id="preview-button">Generate</button>
+    <br>
+    
+    <br>
+    <div id="viewer"></div>
+
+    
+    <br>
+    <button id="save-button">Save and Edit Song</button>
+    
+    </div>
+
+    <script src="/js/omgservice.js"></script>
+    <script src="/js/embedded_viewer.js"></script> 
+
+    <script src="parser.js"></script>
+    <script src="soundfinder.js"></script>
+    
+    <script src="randomizer.js"></script>
+    <script src="melody_maker.js"></script>
+    <script src="beat_maker.js"></script>
+
+    <script>
+        let input = document.getElementById('sp-page')
+        let viewerDiv = document.getElementById("viewer")
+        let parser = new OMGSongDocParser()
+        let randomizer = new OMGSongRandomizer()
+        let finder = new OMGSoundFinder()
+        let musicPlayer
+        let song
+        let viewer
+
+        omg.server.getTypes(() => {
+            viewer = new OMGEmbeddedViewer({div: viewerDiv,
+                data: {type: "SONG", sections: []},
+                maxHeight: 200,
+                noBottomRow: true
+            })
+        })
+        //user?
+
+
+        document.getElementById("preview-button").onclick = e => {
+            if (viewer && viewer.embedViewer && 
+                    viewer.embedViewer.player && viewer.embedViewer.player.playing) {
+                viewer.embedViewer.player.stop()
+            }
+
+            let songData = parser.go(input.innerHTML)
+            
+            finder.go(songData, () => {
+                
+                song = new OMGSong(null, songData)
+                
+                randomizer.go(song)
+
+                //musicPlayer.prepareSong(song)
+                
+                viewerDiv.innerHTML = ""
+                viewer = new OMGEmbeddedViewer({div: viewerDiv,
+                    data: song.getData(),
+                    maxHeight: 200,
+                    noBottomRow: true
+                })
+
+            })
+
+        }
+
+        document.getElementById("save-button").onclick = e => {
+            omg.server.post({type: "SONGDOC", text: input.innerHTML}, res => {
+                song.data.generatedWith = {type: "SONGDOC", id: res.id}
+                omg.server.post(song.getData(), res => {
+                    window.location = "/apps/music/remixer/?id=" + res.id
+                })
+            })
+        }
+
+        window.onload = () => input.focus()
+    </script>
+</body>
+
+</html>

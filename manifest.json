@@ -1,0 +1,6 @@
+{
+    "activities": [
+        {"name": "Song Processor", "url": "", "edits": ["SONGDOC"]},
+        {"name": "Embedded SongDoc Viewer", "url": "embed.js", "embeds": ["SONGDOC"]}
+    ]
+}
