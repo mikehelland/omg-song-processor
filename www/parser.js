@@ -102,7 +102,13 @@ OMGSongDocParser.prototype.parseHeaderLine = function (line, i) {
     else if (lowerLine.startsWith("(")) {
         parts = this.parseParts(lowerLine)
     }
-    
+    else if (line.split("/").length === 2) {
+        let timeSig = line.split("/")
+        try {
+            let beats = parseInt(timeSig[0])
+            this.result.beatParams.beats = beats
+        } catch (e) {console.error(e)}
+    }
     else {
         console.log(line)
     }
