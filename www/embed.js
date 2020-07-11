@@ -1,8 +1,8 @@
 if (typeof omg === "object" && omg.registerEmbeddedViewer) {
-    omg.registerEmbeddedViewer("SONGDOC", OMGEmbeddedViewerDOC)
+    omg.registerEmbeddedViewer("SONGDOC", OMGEmbeddedViewerSONGDOC)
 }
 
-function OMGEmbeddedViewerDOC(viewer) {
+function OMGEmbeddedViewerSONGDOC(viewer) {
     var data = viewer.data
     var parentDiv = viewer.embedDiv
     this.viewMode = viewer.params.viewMode || "full"
@@ -20,7 +20,7 @@ function OMGEmbeddedViewerDOC(viewer) {
     )
 }
 
-OMGEmbeddedViewerDOC.prototype.markdown = function (input) {
+OMGEmbeddedViewerSONGDOC.prototype.markdown = function (input) {
     if (!this.converter) {
         this.converter = new showdown.Converter()
         this.converter.setOption('simplifiedAutoLink', 'value');
