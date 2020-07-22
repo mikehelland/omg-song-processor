@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        html, body, canvas {
+            height: 100%;
+            width: 100%;
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        canvas {
+            background-color: black;
+        }
+
+        #welcome {
+            position: absolute;
+            top: 20px;
+            left: 33%;
+            border: 2px solid white;
+            color:white;
+            background-color: black;
+            padding: 20px;
+            width:33%
+        }
+
+        #meter {
+            position:relative;
+            height:50px;
+        }
+        #output {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            color:blue;
+        }
+        
+    </style>
+</head>
+<body>
+    <canvas id="main-canvas"></canvas>
+    <div id="welcome">
+        <h2>Song Pong</h2>
+        <p>A voice controlled Pong Game that generates music from the game data.</p>
+        <p>To start, enable your microphone, and sing your most natural pitch.</p>
+        <p>Not too high! Not too low! Juuuust right.</p>
+        <div id="meter">
+            meter
+        </div>
+        <p>Hold that pitch for 2 seconds to start the game.</p>
+    </div>
+
+    <div id="output"></div>
+    <script src="/apps/music/js/libs/peakmeter.js"></script>
+
+    <script src="tuner/aubio.js"></script>
+    <script src="tuner/tuner.js"></script>
+
+    <script>
+        let output = document.getElementById("output")
+        let canvas = document.getElementById("main-canvas")
+        let ctx = canvas.getContext("2d")
+
+        let w = 640 //canvas.clientWidth
+        let h = 480 //canvas.clientHeight
+
+        let ball = {x: w/2, y: h/2, dx: 3, dy: 4, w: 6}
+        let player1 = {x: 12, y: h/2, nextHitPlace: -1}
+        let player2 = {x: w - 12, y: h/2, nextHitPlace: 1}
+        let move = 0
+        let paused = false
+
+        let target
+        let dy
+
+        let players = 1
+
+        let gameState = 0
+
+        canvas.height = h
+        let draw = () => {
+            canvas.width = w
+
+            if (!paused) {
+                ball.x += ball.dx
+                ball.y += ball.dy
+                player1.y += move
+
+                target = ball.y - player2.nextHitPlace
+                dy = target - player2.y
+                if (dy > 5) dy = 5
+                if (dy < -5) dy = -5
+                player2.y += dy
+
+                if (players < 1) {
+                    target = ball.y - player1.nextHitPlace
+                    dy = target - player1.y
+                    if (dy > 5) dy = 5
+                    if (dy < -5) dy = -5
+                    player1.y += dy
+                }
+            }
+
+
+            if (ball.y >= h || ball.y <= 0) {
+                ball.dy = ball.dy * -1
+            }
+
+            if (paused) {
+
+            }
+            else if (ball.x >= player2.x - 9) {
+                if (ball.y >= player2.y - 30 && ball.y <= player2.y + 30) {
+                    ball.dx = ball.dx * -1
+
+                    ball.dy = (ball.y - player2.y) / 4
+
+                    player2.nextHitPlace = Math.random() * 60 - 30
+                }
+                else {
+                    paused = true
+                    ball.dx = Math.abs(ball.dx)
+                    ball.dy = 4
+
+                    setTimeout(() => {
+                        ball.x = w/2
+                        ball.y = h/2
+                        paused = false
+                    }, 2000)
+                }
+            }
+            else if (ball.x <= player1.x + 9) {
+                if (ball.y >= player1.y - 30 && ball.y <= player1.y + 30) {
+                    ball.dx = ball.dx * -1
+
+                    ball.dy = (ball.y - player1.y) / 4
+
+                    player1.nextHitPlace = Math.random() * 60 - 30
+                }
+                else {
+                    paused = true
+                    ball.dx = Math.abs(ball.dx)
+                    ball.dy = 4
+                        
+                    setTimeout(() => {
+                        ball.x = w/2
+                        ball.y = h/2
+                        paused = false
+                    }, 2000)
+                }
+            }
+            
+            ctx.strokeStyle = "white"
+            ctx.lineWidth = 12
+
+            ctx.beginPath()
+            ctx.moveTo(w / 2, 0)
+            ctx.lineTo(w / 2 + 1, h)
+            ctx.stroke()
+
+            ctx.beginPath()
+            ctx.moveTo(player1.x, player1.y - 24)
+            ctx.lineTo(player1.x, player1.y + 24)
+            ctx.stroke()
+            
+            ctx.beginPath()
+            ctx.moveTo(player2.x, player2.y - 24)
+            ctx.lineTo(player2.x, player2.y + 24)
+            ctx.stroke()
+            
+            ctx.fillStyle = "white"
+            ctx.fillRect(ball.x - 6, ball.y - 6, 12, 12)
+            
+            if (gameState > 0) {
+                requestAnimationFrame(draw) 
+            }
+        }
+
+        document.body.onkeydown = e => {
+            if (e.key === "ArrowUp") {
+                move = -5
+            }
+            if (e.key === "ArrowDown") {
+                move = 5
+            }
+        }
+        document.body.onkeyup = e => {
+            if (e.key === "ArrowUp") {
+                move = 0
+            }
+            if (e.key === "ArrowDown") {
+                move = 0
+            }
+        }
+
+        let referencePitch
+        let newY
+        let movePlayer1 = (info) => {
+            target =  Math.min(h, Math.max(0, h / 2 + h / 18 * (referencePitch - info.value)))
+            dy = target - player1.y
+            if (dy > 50) dy = 50
+            if (dy < -50) dy = -50
+            player1.y += dy
+        }
+
+        let updateMeter = () => {
+            if (gameState === 0) {
+                meter.updateMeter()
+                requestAnimationFrame(updateMeter)
+            }
+        }
+
+        let referencePitchData = []
+        let referenceStarted = 0
+
+        let calculateReferencePitch = () => {
+            let total = 0
+            for (var i = 0; i < referencePitchData.length; i++) {
+                total += referencePitchData[i]
+            }
+            referencePitch = total / referencePitchData.length
+        }
+
+        let meter
+        let analyzer
+
+        let onDetect = function (info) {
+
+            // haven't started, need  a reference pitch
+            if (gameState === 0) {
+                if (meter && meter.peakInstantaneousPowerDecibels > -20) {
+                    referencePitchData.push(info.value)
+                    if (!referenceStarted) {
+                        referenceStarted = Date.now()
+                    }
+                    else if (Date.now() - referenceStarted > 2000) {
+                        //got it, start the game
+                        calculateReferencePitch()
+                        document.getElementById("welcome").style.display = "none"
+                        gameState = 1
+                        draw()
+                    }
+                }
+                else {
+                    referenceStarted = 0
+                    referencePitchData = []
+                }
+            }
+            else if (gameState === 1) {
+                output.innerHTML = info.value
+                movePlayer1(info)
+            }
+        }
+
+        function start() {
+            
+            tuner = new Tuner()
+            tuner.onNoteDetected = function(note) {
+                if (self.lastNote === note.name) {
+                    onDetect(note)
+                } else {
+                    self.lastNote = note.name
+                }
+            }
+
+            tuner.init()
+            
+            meter = new PeakMeter(tuner.analyser, document.getElementById("meter"), tuner.audioContext);
+            requestAnimationFrame(updateMeter)
+        
+            draw()
+
+	    }
+
+        start()
+    </script>
+
+</body>
+
+</html>
+
