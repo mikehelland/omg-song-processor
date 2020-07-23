@@ -49,7 +49,7 @@
         <div id="meter">
             meter
         </div>
-        <p>Hold that pitch for 2 seconds to start the game.</p>
+        <p>Hold that pitch for a second or two and the game will start.</p>
     </div>
 
     <div id="output"></div>
@@ -212,8 +212,8 @@
             }
         }
 
-        let referencePitchData = []
-        let referenceStarted = 0
+        let referenceCandidate
+        let referenceCounter = 0
 
         let calculateReferencePitch = () => {
             let total = 0
@@ -231,22 +231,29 @@
             // haven't started, need  a reference pitch
             if (gameState === 0) {
                 if (meter && meter.peakInstantaneousPowerDecibels > -20) {
-                    referencePitchData.push(info.value)
-                    if (!referenceStarted) {
-                        referenceStarted = Date.now()
+                    
+                    if (!referenceCandidate || referenceCandidate !== info.value) {
+                        referenceCandidate = info.value
+                        referenceCounter = 0
                     }
-                    else if (Date.now() - referenceStarted > 2000) {
-                        //got it, start the game
-                        calculateReferencePitch()
-                        document.getElementById("welcome").style.display = "none"
-                        gameState = 1
-                        draw()
+                    else {
+                        referenceCounter++
+
+                        if (referenceCounter === 9) {
+                            //got it, start the game
+                            referencePitch = referenceCandidate
+                            document.getElementById("welcome").style.display = "none"
+                            gameState = 1
+                            draw()
+                        }
                     }
                 }
                 else {
-                    referenceStarted = 0
-                    referencePitchData = []
+                    referenceCounter = 0
+                    referenceCandidate = null
                 }
+
+                console.log(referenceCounter, referenceCandidate)
             }
             else if (gameState === 1) {
                 output.innerHTML = info.value
