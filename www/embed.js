@@ -1,7 +1,3 @@
-if (typeof omg === "object" && omg.registerEmbeddedViewer) {
-    omg.registerEmbeddedViewer("SONGDOC", OMGEmbeddedViewerSONGDOC)
-}
-
 function OMGEmbeddedViewerSONGDOC(viewer) {
     var data = viewer.data
     var parentDiv = viewer.embedDiv
