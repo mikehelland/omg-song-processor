@@ -105,6 +105,30 @@ Key of G
 Intro
 ---
 |D C G G
+|D C G G
+
+
+Verse
+---
+|Em   Em   Am  Am
+Some words and stuff
+
+|Em   Em   Am  Am
+About some things
+
+
+Chorus
+---
+|G    G   C   C
+And the chorus goes "oooh"
+
+|G    G   C   D
+And the chorus goes "aaah"
+
+
+Outro
+---
+|G G G
 
 </pre>
 
@@ -203,6 +227,7 @@ Intro
                 let {song, player} = await musicContext.load(songData)
                 window.song = song
                 window.player = player
+                song.loop = false
 
                 randomizer.go(song, musicContext)
                 musicContext.rescaleSong(song)
