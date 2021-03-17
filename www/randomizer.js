@@ -19,23 +19,28 @@ OMGSongRandomizer.prototype.go = function (song) {
     this.motif = this.mm.makeMotif();
     this.melody = this.mm.makeMelodyFromMotif(this.motif, this.beats);
 
-    song.sections.forEach(section => {
+    Object.values(song.sections).forEach(section => {
 
-        section.parts.forEach(part => {
+        for (var partName in section.parts) {
+            var part = section.parts[partName]
             if (part.data.name === "drums") {
                 this.bm.makeDrumBeat(part, song.data.beatParams)
             }
             else {
                 part.data.notes = this.makePartNotes(part)
             }
-        })
+        }
     })
 }
 
 OMGSongRandomizer.prototype.makePartNotes = function (part) {
 
     let melody
-    if (this.rand.nextInt(5) === 0) {
+    
+    if (part.data.name.toLowerCase().indexOf("bass") > -1) {
+        melody = this.mm.makeBassLine(this.motif, this.beats)
+    }
+    else if (this.rand.nextInt(5) === 0) {
         this.motif = this.mm.makeMotif();
         melody = this.mm.makeMelodyFromMotif(this.motif, this.beats);
     }

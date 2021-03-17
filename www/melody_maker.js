@@ -261,3 +261,11 @@ OMGMelodyMaker.prototype.melodify = function (motif) {
     return motif;
 }
 
+
+OMGMelodyMaker.prototype.makeBassLine = function (motif, beats) {
+    var out = []
+    for (var i = 0; i < beats * 2; i++) {
+        out.push({note:0, beats: 0.5})
+    }
+    return out
+}

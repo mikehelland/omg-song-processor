@@ -29,6 +29,10 @@ OMGSongDocParser.prototype.go = function (content) {
         this.parseLine(line, i)
     }
 
+    if (this.currentSection) {
+        this.currentSection.endLine = lines.length 
+    }
+
     this.makeChordProgessions()
 
     return this.result
@@ -46,13 +50,16 @@ OMGSongDocParser.prototype.parseLine = function (line, i) {
             //the previous line is actually the new section name
             // so remove it from the lyrics of the last section
             this.currentSection.lyrics.pop()
+
+            this.currentSection.endLine = i - 2 
         }
 
         this.sectionI++
         let sectionName = this.lastLine || ("section " + this.sectionI)
 
         this.result.sections[this.sectionI] = {name: sectionName, chords: [], lyrics: [], 
-            partNames: JSON.parse(JSON.stringify(this.result.partNames)) 
+            partNames: JSON.parse(JSON.stringify(this.result.partNames)),
+            startLine: i - 1
         }
         
         this.currentSection = this.result.sections[this.sectionI]

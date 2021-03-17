@@ -4,19 +4,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
    
     <style>
+        html {
+            height:100%;
+            box-sizing: border-box;
+        }
         body {
             background-color: #282828;
-            padding: 25px;
+            height:100%;
+            box-sizing: border-box;
+            margin: 0;
+
         }
 
         #sp-page-background {
-            width:600px;
-            margin: auto;
-        
+            display: flex;
+            height:100%;
+            box-sizing: border-box;
+            overflow: auto;
         }        
         #sp-page {
+            box-sizing: border-box;
+            width:600px;
+            margin: 25px;
             background-color: white;
             padding: 45px;
+            color:black;
+            font-size: 16px;
+
+        }
+
+        #music-panel {
+            box-sizing: border-box;
+            flex-grow: 1;
+            padding:10px;
+            margin-top: 25px;
+            position: relative;
         }
 
         input {
@@ -36,10 +58,30 @@
         #preview-area {
             display: none;
         }
+        #music-sections {
+            position: relative;
+        }
+        .music-section {
+            position:absolute;
+            background-color: #eeeeee;
+            width:100%;
+        }
+
+        .beat-marker {
+            position:absolute;
+            background-color:#4fa5d5;
+            opacity:0.4;
+            display:none;
+            cursor:pointer;
+            pointer-events:none;
+        }
+
 
     </style>
 
     <link rel="stylesheet" type="text/css" href="/css/viewer.css"/>
+    <link rel="stylesheet" type="text/css" href="/css/window_manager.css"/>
+    <link rel="stylesheet" type="text/css" href="/apps/dawesome/dawesome.css"/>
     
 </head>
 
@@ -58,30 +100,28 @@ by Your Name
 Key of G
 4/4
 
-(trumpet,drums,bass,xylophone)
+(drums,bass)
 
 Intro
 ---
 |D C G G
 
-
-Verse
----
-
-|V
-Here are some lyrics
-
-|IV
-They are for my song
-
-|I                    I
-Yeah yeah yeah
-
-Outro
----
-|V IV I I
 </pre>
 
+<div id="music-panel">
+    <div id="music-sections"></div>
+    <div class="beat-marker" id="beat-marker"></div>
+    <button id="go-button">Refresh</button>
+    <button id="save-button">Save</button>
+    <button id="edit-button">Edit in Dawesome</button>
+    
+    <br>
+    <button id="play-button">Play</button>
+    
+</div>
+
+</div>
+    <!--
     <button id="preview-button">Generate</button>
     <br>
     
@@ -93,10 +133,11 @@ Outro
         
         <br>
         <button id="save-button">Save and Edit Song</button>
-    </div>
-    </div>
+    </div>-->
+    
 
     <script src="/js/omgservice.js"></script>
+    <script src="/apps/music/js/omgservice_music.js"></script>
     <script src="/js/embedded_viewer.js"></script> 
 
     <script src="parser.js"></script>
@@ -106,7 +147,17 @@ Outro
     <script src="melody_maker.js"></script>
     <script src="beat_maker.js"></script>
 
-    <script>
+    <script type="module">
+        import OMusicContext from "/apps/music/js/omusic.js"
+        import OMGEmbeddedViewerMusicDrawer from "/apps/music/js/omusic-embed-draw.js"
+        
+        
+        var musicContext = new OMusicContext()
+        musicContext.loadFullSoundSets = true
+
+        var musicSectionsDiv = document.getElementById("music-sections")
+
+        let drawer = new OMGEmbeddedViewerMusicDrawer()
         let input = document.getElementById('sp-page')
         let viewerDiv = document.getElementById("viewer")
         let parser = new OMGSongDocParser()
@@ -117,52 +168,111 @@ Outro
         let viewer
 
         omg.server.getTypes(() => {
-            viewer = new OMGEmbeddedViewer({div: viewerDiv,
-                data: {type: "SONG", sections: []},
-                maxHeight: 200,
-                noBottomRow: true
-            })
+            
         })
         //user?
 
+        var playButton = document.getElementById("play-button")
+        playButton.onclick = e => {
+            if (window.player && window.player.playing) {
+                playButton.innerHTML = "Play"
+                window.player.stop()
+            }
+            else {
+                playButton.innerHTML = "Stop"
+                window.player.play()
+            }
 
-        document.getElementById("preview-button").onclick = e => {
-            document.getElementById("preview-area").style.display = "block"
-            document.body.parentElement.scrollTop = document.body.parentElement.scrollHeight
 
-            if (viewer && viewer.embedViewer && 
-                    viewer.embedViewer.player && viewer.embedViewer.player.playing) {
-                viewer.embedViewer.player.stop()
+        }
+
+        var beatMarker
+
+        document.getElementById("go-button").onclick = e => {
+            //document.body.parentElement.scrollTop = document.body.parentElement.scrollHeight
+
+            if (window.player) {
+                window.player.stop()
             }
 
             let songData = parser.go(input.innerHTML)
             
-            finder.go(songData, () => {
-                
-                song = new OMGSong(null, songData)
-                
-                randomizer.go(song)
+            finder.go(songData, async () => {
 
-                //musicPlayer.prepareSong(song)
                 
-                viewerDiv.innerHTML = ""
-                viewer = new OMGEmbeddedViewer({div: viewerDiv,
-                    data: song.getData(),
-                    maxHeight: 200,
-                    noBottomRow: true
+                let {song, player} = await musicContext.load(songData)
+                window.song = song
+                window.player = player
+
+                randomizer.go(song, musicContext)
+                musicContext.rescaleSong(song)
+                
+                makeSectionDivs(songData, song)
+                
+                player.onBeatPlayedListeners.push((i, section, chordI) => {
+                    beatMarker.style.width = section.canvasSubbeatLength + "px" 
+                    beatMarker.style.left = section.canvasSubbeatLength * (i + section.canvasSubbeatsPerChord * chordI) + "px" 
+                    beatMarker.style.top = section.canvas.offsetTop + "px" 
+                    beatMarker.style.height = section.canvas.clientHeight + "px" 
+
                 })
+
+                player.play()
+                playButton.innerHTML = "Stop"
+                
+                
 
             })
 
         }
 
-        document.getElementById("save-button").onclick = e => {
+        var saveButton = document.getElementById("save-button")
+        saveButton.onclick = e => {
             omg.server.post({type: "SONGDOC", text: input.innerHTML}, res => {
-                song.data.generatedWith = {type: "SONGDOC", id: res.id}
-                omg.server.post(song.getData(), res => {
-                    window.location = "/apps/music/remixer/?id=" + res.id
+                saveButton.innerHTML = "Saved!"
+                setTimeout(()=>{saveButton.innerHTML = "Save Doc"}, 3000)
+            })
+        }
+
+        document.getElementById("edit-button").onclick = e => {
+            omg.server.post({type: "SONGDOC", text: input.innerHTML}, res => {
+                window.song.data.generatedWith = {type: "SONGDOC", id: res.id}
+                omg.server.post(window.song.getData(), res => {
+                    window.location = "/apps/dawesome/?id=" + res.id
                 })
             })
+        }
+
+        function makeSectionDivs(songData, song) {
+
+            musicSectionsDiv.innerHTML = ""
+            for (var section of  songData.sections) {
+
+                var div = document.createElement("canvas")
+                div.className = "music-section"
+                div.innerHTML = section.name
+                div.style.top = (section.startLine - 1) * 19 + 45 + 1 + "px"
+                div.style.height = (section.endLine - section.startLine + 1) * 19 - 2 + "px"
+                musicSectionsDiv.appendChild(div)
+
+                var subbeats = song.data.beatParams.subbeats * song.data.beatParams.beats * section.chordProgression.length
+
+                song.sections[section.name].canvas = div
+
+                drawer.drawCanvas(song.data, div, 
+                    subbeats, [section])
+
+                song.sections[section.name].canvasSubbeatsPerChord = song.data.beatParams.subbeats * song.data.beatParams.beats
+                song.sections[section.name].canvasSubbeatLength = drawer.subbeatLength
+
+            }
+            beatMarker = document.createElement("div")
+            beatMarker.className = "beat-marker"
+            beatMarker.style.display = "block"
+                
+            musicSectionsDiv.appendChild(beatMarker)
+
+
         }
 
         window.onload = () => input.focus()

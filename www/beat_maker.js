@@ -84,6 +84,7 @@ OMGBeatMaker.prototype.makeHiHatBeats = function (defaultPattern) {
     if (defaultPattern)
         return;
 
+    let accent = Math.round(Math.random() * 10) / 10
 
     let downbeat;
     for (let i = 0; i < 4; i++) {
@@ -91,16 +92,16 @@ OMGBeatMaker.prototype.makeHiHatBeats = function (defaultPattern) {
         hihats[openhh][downbeat] = this.rand.nextInt(20) > 0;
         hihats[openhh][downbeat + 16] = this.rand.nextInt(20) > 0;
 
-        if (this.rand.nextBoolean()) {
+        if (this.rand.nextInt(5) > 0) {
             tmpopensubs = (opensubs == 1 && this.rand.nextBoolean()) ? 1 : 0;
             hihats[tmpopensubs][downbeat + 2] = true;
             hihats[tmpopensubs][downbeat + 2 + 16] = true;
 
             if (this.rand.nextBoolean()) {
-                hihats[opensubs][downbeat + 1] = true;
-                hihats[opensubs][downbeat + 3] = true;
-                hihats[opensubs][downbeat + 1 + 16] = true;
-                hihats[opensubs][downbeat + 3 + 16] = true;
+                hihats[opensubs][downbeat + 1] = accent;
+                hihats[opensubs][downbeat + 3] = accent;
+                hihats[opensubs][downbeat + 1 + 16] = accent;
+                hihats[opensubs][downbeat + 3 + 16] = accent;
             }
 
         }
@@ -138,16 +139,16 @@ OMGBeatMaker.prototype.makeClapBeats = function (defaultPattern) {
         return;
     }
 
-    let pattern = this.rand.nextInt(10);
+    let pattern = this.rand.nextInt(20);
 
 //        clap = new boolean[beats * subbeats];
 
-    let snareCutTime = this.rand.nextBoolean();
+    let snareCutTime = false //this.rand.nextBoolean();
     for (let i = 0; i < this.totalSubbeats; i++) {
 
         clap[i] = pattern != 0 && (
-            (snareCutTime && i % (2 * this.subbeats) == this.subbeats) ||
-                    (!snareCutTime && i % (4 * this.subbeats) == (2 * this.subbeats))
+            (!snareCutTime && i % (2 * this.subbeats) == this.subbeats) ||
+                    (snareCutTime && i % (4 * this.subbeats) == (2 * this.subbeats))
 
         );
 

@@ -9,13 +9,14 @@
             margin: 0;
             box-sizing: border-box;
             overflow: hidden;
+            font-family: 'Courier New', Courier, monospace;
         }
 
         canvas {
             background-color: black;
         }
 
-        #welcome {
+        .dialog {
             position: absolute;
             top: 20px;
             left: 33%;
@@ -32,34 +33,89 @@
         }
         #output {
             position: absolute;
-            top: 5px;
-            left: 5px;
-            color:blue;
+            bottom: 0px;
+            width:50%;
+            opacity: 0.5;
+            left: 25%;
+            color:white;
         }
-        
+        #game-over {
+            display:none;
+        }
+        #game-over li {
+            margin: 18px;
+            font-size: 1.5em;
+            list-style: none;
+            cursor: pointer;
+        }
+        #game-over li:hover {
+            text-decoration: underline;
+        }
+        .selected-menu-option {
+            list-style-type: square !important;  
+        }
     </style>
 </head>
 <body>
     <canvas id="main-canvas"></canvas>
-    <div id="welcome">
-        <h2>Song Pong</h2>
-        <p>A voice controlled Pong Game that generates music from the game data.</p>
-        <p>To start, enable your microphone, and sing your most natural pitch.</p>
-        <p>Not too high! Not too low! Juuuust right.</p>
+    <div id="welcome" class="dialog">
+        <h4>To Win</h4>
+        <p>Get 3 or more notes.</p>
+        
+        <ul>
+            <li>
+                Hit the ball, get a note.
+            </li>
+            <br>
+            <li>
+                listen to your melody!
+            </li>
+        </ul>
+
+        <hr>
+
+        <h4>To Start</h4>
+        <p>Sing/Play your most natural pitch.</p>
+        <p>Not too high! Not too low!</p>
         <div id="meter">
             meter
         </div>
-        <p>Hold that pitch for a second or two and the game will start.</p>
+        <p>Hold that pitch for a second or two and the game will start.</p>        
+
     </div>
 
-    <div id="output"></div>
+    <div id="output">
+        <span id="notes"></span>
+        <span id="next-note"></span>
+    </div>
+
+    <div id="game-over" class="dialog">
+        You got <span id="note-count">x</span> notes!
+        <br>
+        <br>
+        What now?
+        <ul>
+            <li id="game-over-keep-going">Keep Going</li>
+            <li id="game-over-play-melody">Play Melody</li>
+            <li id="game-over-edit-melody">Open in Melody Editor</li>
+            <!--<li id="game-over-start-o er">Start Over</li>-->
+        </ul>
+    </div>
+
+
     <script src="/apps/music/js/libs/peakmeter.js"></script>
 
     <script src="tuner/aubio.js"></script>
     <script src="tuner/tuner.js"></script>
 
     <script>
+
+        let notesHit = []
+
         let output = document.getElementById("output")
+        let notes = document.getElementById("notes")
+        let nextNote = document.getElementById("next-note")
+
         let canvas = document.getElementById("main-canvas")
         let ctx = canvas.getContext("2d")
 
@@ -78,6 +134,20 @@
         let players = 1
 
         let gameState = 0
+
+        let hitNote = note => {
+            notesHit.push(note)
+            notes.innerHTML += note.name + note.octave + "&nbsp;&nbsp;&nbsp;"
+        }
+
+        let goMenu 
+        let gameOver = () => {
+            goMenu = document.getElementById("game-over")
+            goMenu.style.display = "block"
+            //gameOverMenuOption = 0
+            //goMenu.getElementsByTagName("li")[gameOverMenuOption].classList.add("selected-menu-option")
+        }
+
 
         canvas.height = h
         let draw = () => {
@@ -138,17 +208,24 @@
                     ball.dy = (ball.y - player1.y) / 4
 
                     player1.nextHitPlace = Math.random() * 60 - 30
+
+                    hitNote(lastNote)
                 }
                 else {
                     paused = true
                     ball.dx = Math.abs(ball.dx)
                     ball.dy = 4
                         
-                    setTimeout(() => {
-                        ball.x = w/2
-                        ball.y = h/2
-                        paused = false
-                    }, 2000)
+                    if (notesHit.length > 2) {
+                        gameOver()
+                    }
+                    else {
+                        setTimeout(() => {
+                            ball.x = w/2
+                            ball.y = h/2
+                            paused = false
+                        }, 2000)
+                    }
                 }
             }
             
@@ -179,6 +256,7 @@
         }
 
         document.body.onkeydown = e => {
+
             if (e.key === "ArrowUp") {
                 move = -5
             }
@@ -226,6 +304,7 @@
         let meter
         let analyzer
 
+        let lastNote
         let onDetect = function (info) {
 
             // haven't started, need  a reference pitch
@@ -253,10 +332,11 @@
                     referenceCandidate = null
                 }
 
-                console.log(referenceCounter, referenceCandidate)
+                console.log(info)
             }
             else if (gameState === 1) {
-                output.innerHTML = info.value
+                lastNote = info
+                nextNote.innerHTML = info.name + info.octave
                 movePlayer1(info)
             }
         }
@@ -282,6 +362,18 @@
 	    }
 
         start()
+
+        document.getElementById("game-over-keep-going").onclick = e => {
+            goMenu.style.display = "none"
+            paused = false
+        }
+        document.getElementById("game-over-play-melody").onclick = e => {
+            goMenu.style.display = "none"
+            paused = false
+        }
+        document.getElementById("game-over-edit-melody").onclick = e => {
+            
+        }
     </script>
 
 </body>
