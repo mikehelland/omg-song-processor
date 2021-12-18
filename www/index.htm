@@ -161,7 +161,6 @@ Outro
     
 
     <script src="/js/omgservice.js"></script>
-    <script src="/apps/music/js/omgservice_music.js"></script>
     <script src="/js/embedded_viewer.js"></script> 
 
     <script src="parser.js"></script>
@@ -191,10 +190,15 @@ Outro
         let song
         let viewer
 
-        omg.server.getTypes(() => {
-            
+        omg.getContext().then(ctx => {
+            if (ctx.pageParams.id) {
+                input.innerHTML = "loading..."
+                omg.server.getId(ctx.pageParams.id, data => {
+                    console.log(data)
+                    input.innerHTML = data.text
+                })
+            }
         })
-        //user?
 
         var playButton = document.getElementById("play-button")
         playButton.onclick = e => {
